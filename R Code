@@ -1,0 +1,358 @@
+##### Forecasting Methods and Time Series Project #####
+
+# Load the packages
+install.packages("readxl")
+install.packages("zoo")
+install.packages("forecast")
+install.packages("e1071")
+install.packages("tseries")
+install.packages("ggplot2")
+install.packages("ggfortify")
+install.packages("bayesforecast")
+install.packages("stats")
+install.packages("ggbio")
+library(readxl)
+library(zoo)
+library(forecast)
+library(e1071)
+library(tseries)
+library(ggplot2)
+library(ggfortify)
+library(bayesforecast)
+library(stats)
+library(ggbio)
+
+# Read in the Excel file
+df = read_excel("Time Series - New South Wales Clothing - 2023.xlsx")
+df
+
+# Convert data into a time series object
+ts_data <- ts(df, start = c(2004, 1), frequency = 12)
+ts_data
+plot(ts_data, main = "Clothing Retail Sales at the New South Wales Province (Australia) - January 2004 - December 2018")
+
+ts_data_log = log(ts_data)
+plot(ts_data_log, main = "Log of the Time Series")
+
+# Calculate mean
+mean(ts_data)
+
+# Calculate median
+median(ts_data)
+
+# Calculate standard deviation
+sd(ts_data)
+
+# Calculate skewness
+skewness(ts_data)
+
+# Calculate kurtosis
+kurtosis(ts_data)
+
+# Create an ACF plot for the time series
+acf(ts_data, main = "Autocorrelation Function (ACF) Plot of the Time Series")
+
+# Decomposition Methods - Perform the decomposition
+decomp_ts <- decompose(ts_data)
+
+# Decomposition Methods - Extract the components
+trend_cycle <- decomp_ts$trend
+trend_cycle
+seasonal <- decomp_ts$seasonal
+seasonal
+random_error <- decomp_ts$random
+random_error
+
+# Decomposition Methods - Seasonally Adjusted Data
+seasonally_adjusted_data <- ts_data - seasonal
+seasonally_adjusted_data
+plot(seasonally_adjusted_data, main = "Seasonally Adjusted Time Series")
+
+# Decomposition Methods - Create a new time series object for the seasonal component
+seasonal_ts <- ts(decomp_ts$seasonal, start = c(2004, 1), frequency = 12)
+seasonal_ts
+
+# Decomposition Methods - Create a new time series object for the trend component
+trend_ts <- ts(decomp_ts$trend, start = c(2004, 1), frequency = 12)
+trend_ts
+
+# Decomposition Methods - Create a new time series object for the random component
+random_ts <- ts(decomp_ts$random, start = c(2004, 1), frequency = 12)
+random_ts              
+
+# Decomposition Methods - Create STL decomposition
+ts_data_col1 <- ts_data[,1]
+ts_data_col1
+stl_data <- stl(ts_data_col1, s.window = "periodic")
+stl_data
+
+# Decomposition Methods - Create a forecast
+final_forecast <- forecast(stl_data, h = 12)
+final_forecast 
+
+# Decomposition Methods - Plot the forecast
+plot(final_forecast, main = "Forecast using STL Decomposition")
+legend("topleft", legend = c("Original Data - Black", "Forecast - Blue"))
+
+# Moving Averages - Create a rolling window of size 12 (Window 12)
+ma_data <- rollapply(ts_data, width = 12, FUN = mean, align = "right", fill = NA)
+
+# Moving Averages - Create a forecast for the next 12 months (Window 12)
+forecast_data <- forecast(ma_data, h = 12)
+
+# Moving Averages - Print the forecasted values (Window 12)
+forecast_data$mean
+
+# Moving Averages - Plot the original data, rolling window, and forecast (Window 12)
+plot(ts_data, main = "Time Series Data - Moving Average [Order 12] Forecast ")
+lines(ma_data, col = "red")
+lines(forecast_data$mean, col = "blue")
+legend("topleft", legend = c("Original Data - Black", "Moving Average - Red", "Forecast - Blue"))
+
+# Moving Averages - Create a rolling window of size 12 (Window 60)
+ma_data_60 <- rollapply(ts_data, width = 60, FUN = mean, align = "right", fill = NA)
+
+# Moving Averages - Create a forecast for the next 12 months (Window 60)
+forecast_data_60 <- forecast(ma_data_60, h = 12)
+
+# Moving Averages - Print the forecasted values (Window 60)
+forecast_data_60$mean
+
+# Moving Averages - Plot the original data, rolling window, and forecast (Window 60)
+plot(ts_data, main = "Time Series Data - Moving Average [Order 60] Forecast ")
+lines(ma_data_60, col = "red")
+lines(forecast_data_60$mean, col = "blue")
+legend("topleft", legend = c("Original Data - Black", "Moving Average - Red", "Forecast - Blue"))
+
+# Exponential Smoothing - Perform exponential smoothing
+fit <- ets(ts_data)
+
+# Exponential Smoothing - Print the summary of the fitted model
+summary(fit)
+
+# Exponential Smoothing - Forecast for the next 12 periods
+forecast_data_es <- forecast(fit, h = 12)
+
+# Exponential Smoothing - Print the forecasted values
+print(forecast_data_es)
+
+# Exponential Smoothing - Plot the original data, rolling window, and forecast
+plot(ts_data, main = "Time Series Data - Exponential Smoothing Forecast")
+lines(forecast_data_es$mean, col = "blue")
+legend("topleft", legend = c("Original Data - Black", "Forecast - Blue"))
+
+#Holtwinters
+ts_data.hw = HoltWinters(ts_data)
+ts_data.hw
+predict_hw = predict(ts_data.hw, n.ahead=12)
+predict_hw 
+
+#Holtwinters - Plot the original data, rolling window, and forecast
+plot(ts_data, main = "Time Series Data - Holtwinters Forecast")
+lines(predict_hw, col = "blue")
+legend("topleft", legend = c("Original Data - Black", "Forecast - Blue"))
+
+
+# ARIMA - Unit Root Test - Perform ADF test on ts_data
+result_adf <- adf.test(ts_data)
+print(result_adf)
+
+# ARIMA - KPSS Test
+result_kpss <- kpss.test(ts_data)
+print(result_kpss)
+
+
+# Plot the ACF and PACF
+par(mfrow = c(2,1))
+acf(ts_data, main = "ACF of Time Series")
+pacf(ts_data, main = "PACF of Time Series")
+
+# ARIMA - Fit an AR(1) model to ts_data c(1, 0, 0))
+ar_model <- arima(ts_data, order = c(1, 0, 0))
+
+# ARIMA - Check the model summary
+summary(ar_model)
+
+# ARIMA - Generate the forecast and residuals
+forecast_ar <- forecast(ar_model)
+residuals_ar <- residuals(ar_model)
+
+# ARIMA - Plot the original series and the fitted values
+plot(ts_data) + 
+  autolayer(fitted(ar_model), series = "Fitted values") + 
+  xlab("Year") + ylab("Value") +
+  ggtitle("Original series vs. Fitted values")
+
+# ARIMA - Plot the model residuals
+plot(residuals_ar) + 
+  ggtitle("ARIMA Model Residuals")
+
+# ARIMA - Fit an AR(1) model to ts_data c(2, 0, 1))
+ar_model_2 <- arima(ts_data, order = c(2, 0, 1))
+
+# ARIMA - Check the model summary
+summary(ar_model_2)
+
+# SARIMA -Seasonally difference the time series
+ts_diff_seasonal <- diff(ts_data, differences = 1, lag = 12)
+
+# SARIMA -Plot the ACF and PACF of the seasonal differences
+ggAcf(ts_diff_seasonal, lag.max = 36) + ggtitle("ACF of Seasonal Differences")
+ggPacf(ts_diff_seasonal, lag.max = 48) + ggtitle("PACF of Seasonal Differences")
+
+# SARIMA - Forecast and Plt
+sarima_model <- arima(ts_data, order = c(0, 1, 1), seasonal = list(order = c(0, 1, 1), period = 12))
+summary(sarima_model)
+
+# SARIMA - Generate the forecast and residuals
+forecast_sar <- forecast(sarima_model)
+residuals_sar <- residuals(sarima_model)
+
+# SARIMA - Plot the original series and the fitted values
+autoplot(ts_data) + 
+  autolayer(fitted(sarima_model), series = "Fitted values") + 
+  xlab("Year") + ylab("Value") +
+  ggtitle("Original series vs. Fitted values")
+
+# SARIMA - Plot the model residuals
+autoplot(residuals_sar) + 
+  ggtitle("ARIMA Model Residuals")
+
+# SARIMA - Ljung-Box test of residuals
+Box.test(residuals_sar, lag = 10, type = "Ljung-Box")
+
+# SARIMA - Forecast and Plt
+sarima_pred <- predict(sarima_model, n.ahead = 12)
+print(sarima_pred$pred)
+pred_95 <- predict(sarima_model, n.ahead = 12, interval = "prediction", level = 0.95)
+lower_ci <- pred_95$pred - pred_95$se
+upper_ci <- pred_95$pred + pred_95$se
+lower_ci
+pred_95$pred
+upper_ci 
+
+# Plot the time series and forecasted values
+autoplot(ts_data) +
+  autolayer(pred$pred, series = "Forecast") +
+  xlab("Year") + ylab("Sales") + ggtitle("Time Series with Forecasted Values - SARIMA")
+
+
+
+#Comparing Forecasts - Moving Avarages - Order 12
+real_sales = c(497.4, 395.2, 475.3, 491.6, 548.2, 543.5, 
+               483.7, 479, 484.4, 521.1, 577.5, 794.7)
+forecasted_values_mavg_12 = c(527.855, 528.1898, 528.4983, 528.7826, 529.0445, 529.2859, 
+                              529.5083, 529.7133, 529.9021, 530.0762, 530.2365, 530.3843)
+mae_forecasted_values_mavg_12 <- mean(abs(forecasted_values_mavg_12 - real_sales))
+mae_forecasted_values_mavg_12
+mse_forecasted_values_mavg_12 <- mean((forecasted_values_mavg_12 - real_sales)^2)
+mse_forecasted_values_mavg_12
+mape_forecasted_values_mavg_12 <- mean(abs((forecasted_values_mavg_12 - real_sales) / real_sales)) * 100
+mape_forecasted_values_mavg_12
+
+#Comparing Forecasts - Moving Avarages - Order 60
+forecasted_values_mavg_60 = c(493.5729, 495.2293, 496.8856, 498.542, 500.1983, 501.8547, 
+                              503.511, 505.1674, 506.8237, 508.4801, 510.1364, 511.7927)
+mae_forecasted_values_mavg_60 <- mean(abs(forecasted_values_mavg_60 - real_sales))
+mae_forecasted_values_mavg_60
+mse_forecasted_values_mavg_60 <- mean((forecasted_values_mavg_60 - real_sales)^2)
+mse_forecasted_values_mavg_60
+mape_forecasted_values_mavg_60 <- mean(abs((forecasted_values_mavg_60 - real_sales) / real_sales)) * 100
+mape_forecasted_values_mavg_60
+
+#Comparing Forecasts - Exponential
+forecasted_values_exp = c(512.984, 405.012, 479.0896, 511.5516, 550.6069, 531.1231, 
+                          493.0069, 470.685, 510.2937, 529.6881, 554.3308, 813.8047)
+mae_forecasted_values_exp <- mean(abs(forecasted_values_exp - real_sales))
+mae_forecasted_values_exp
+mse_forecasted_values_exp <- mean((forecasted_values_exp - real_sales)^2)
+mse_forecasted_values_exp
+mape_forecasted_values_exp <- mean(abs((forecasted_values_exp - real_sales) / real_sales)) * 100
+mape_forecasted_values_exp
+
+#Comparing Forecasts - Holtwinters
+forecasted_values_hw = c(521.4013, 401.2839, 480.0818, 493.1242, 567.5385, 552.0727, 
+                         480.1724, 471.7116, 494.6799, 527.3311, 568.428, 804.6864)
+mae_forecasted_values_hw <- mean(abs(forecasted_values_hw - real_sales))
+mae_forecasted_values_hw
+mse_forecasted_values_hw <- mean((forecasted_values_hw - real_sales)^2)
+mse_forecasted_values_hw
+mape_forecasted_values_hw <- mean(abs((forecasted_values_hw - real_sales) / real_sales)) * 100
+mape_forecasted_values_hw
+
+#Comparing Forecasts - Decomposition
+forecasted_values_decomp = c(537.9575, 460.2992, 515.4542, 540.1795, 570.2648, 557.7534, 
+                             530.2487, 516.0113, 544.834, 560.5963, 581.4987, 775.4917)
+mae_forecasted_values_decomp <- mean(abs(forecasted_values_decomp - real_sales))
+mae_forecasted_values_decomp
+mse_forecasted_values_decomp <- mean((forecasted_values_decomp - real_sales)^2)
+mse_forecasted_values_decomp
+mape_forecasted_values_decomp <- mean(abs((forecasted_values_decomp - real_sales) / real_sales)) * 100
+mape_forecasted_values_decomp
+
+#Comparing Forecasts - SARIMA
+forecasted_values_sarima = c(522.8214, 408.4548, 485.6951, 494.081, 563.3905, 559.2866, 
+                             492.1298, 480.1607, 501.5319, 529.5882, 570.6168, 806.3643)
+mae_forecasted_values_sarima <- mean(abs(forecasted_values_sarima - real_sales))
+mae_forecasted_values_sarima
+mse_forecasted_values_sarima <- mean((forecasted_values_sarima - real_sales)^2)
+mse_forecasted_values_sarima
+mape_forecasted_values_sarima <- mean(abs((forecasted_values_sarima - real_sales) / real_sales)) * 100
+mape_forecasted_values_sarima
+
+#Comparing Forecasts - Create data frame with the metrics
+df_compare_mae <- data.frame(
+  Method = rep(c("Moving Average (12)", "Moving Average (60)", "Exponential", "Holtwinters", "Decomposition", "SARIMA"), each = 1),
+  Metric = c("MAE"),
+  Value = c(mae_forecasted_values_mavg_12, mae_forecasted_values_mavg_60, mae_forecasted_values_exp, 
+            mae_forecasted_values_hw, mae_forecasted_values_decomp, mae_forecasted_values_sarima 
+  )
+)
+
+df_compare_mse <- data.frame(
+  Method = rep(c("Moving Average (12)", "Moving Average (60)", "Exponential", "Holtwinters", "Decomposition", "SARIMA"), each = 1),
+  Metric = c("MSE"),
+  Value = c(mse_forecasted_values_mavg_12, mse_forecasted_values_mavg_60, mse_forecasted_values_exp,
+            mse_forecasted_values_hw, mse_forecasted_values_decomp, mse_forecasted_values_sarima
+  )
+)
+
+df_compare_mape <- data.frame(
+  Method = rep(c("Moving Average (12)", "Moving Average (60)", "Exponential", "Holtwinters", "Decomposition", "SARIMA"), each = 1),
+  Metric = c("MAPE"),
+  Value = c(mape_forecasted_values_mavg_12, mape_forecasted_values_mavg_60, mape_forecasted_values_exp, 
+            mape_forecasted_values_hw, mape_forecasted_values_decomp, mape_forecasted_values_sarima
+  )
+)
+
+#Comparing Forecasts - Grouped bar chart - MAE
+ggplot(df_compare_mae, aes(x = Metric, y = Value, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Value, 2)), position = position_dodge(width = 0.9), 
+            vjust = -0.5, size = 3) + 
+  scale_fill_manual(values = c("Moving Average (12)" = "purple", "Moving Average (60)" = "yellow", 
+                               "Exponential" = "green", "Holtwinters" = "orange", 
+                               "Decomposition" = "blue", "SARIMA" = "red")) +
+  labs(title = "Comparison of Forecast Methods - MAE", x = "Forecasting Method", y = "MAE Value")
+
+#Comparing Forecasts - Grouped bar chart - MSE
+ggplot(df_compare_mse, aes(x = Metric, y = Value, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Value, 2)), position = position_dodge(width = 0.9), 
+            vjust = -0.5, size = 3) + 
+  scale_fill_manual(values = c("Moving Average (12)" = "purple", "Moving Average (60)" = "yellow", 
+                               "Exponential" = "green", "Holtwinters" = "orange", 
+                               "Decomposition" = "blue", "SARIMA" = "red")) +
+  labs(title = "Comparison of Forecast Methods - MSE", x = "Forecasting Method", y = "MSE Value")
+
+#Comparing Forecasts - Grouped bar chart - MAPE
+ggplot(df_compare_mape, aes(x = Metric, y = Value, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Value, 2)), position = position_dodge(width = 0.9), 
+            vjust = -0.5, size = 3) + 
+  scale_fill_manual(values = c("Moving Average (12)" = "purple", "Moving Average (60)" = "yellow", 
+                               "Exponential" = "green", "Holtwinters" = "orange", 
+                               "Decomposition" = "blue", "SARIMA" = "red")) +
+  labs(title = "Comparison of Forecast Methods - MAPE", x = "Forecasting Method", y = "MAPE Value")
+
+
